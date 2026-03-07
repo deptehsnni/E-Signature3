@@ -1,9 +1,10 @@
 import express from "express";
-import { supabase } from "../../supabase";
-import { hashPassword } from "../utils";
+import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena file sejajar di folder api
+import { hashPassword } from "../../server/utils"; // REVISI: Mengarah ke folder server di luar folder api
 
 const router = express.Router();
 
+// Memperbarui informasi profil pengguna
 router.post("/update", async (req, res) => {
   const { id_karyawan, nama_lengkap, jabatan, qr_logo } = req.body;
   const { error } = await supabase
@@ -15,8 +16,11 @@ router.post("/update", async (req, res) => {
   res.json({ success: true });
 });
 
+// Mengubah password pengguna
 router.post("/change-password", async (req, res) => {
   const { id_karyawan, oldPassword, newPassword } = req.body;
+  
+  // Hash password lama untuk verifikasi
   const oldHash = hashPassword(oldPassword);
   
   const { data: user, error: findError } = await supabase
@@ -30,6 +34,7 @@ router.post("/change-password", async (req, res) => {
     return res.status(401).json({ error: "Password lama salah" });
   }
 
+  // Hash password baru dan simpan ke database
   const newHash = hashPassword(newPassword);
   await supabase
     .from('users')
