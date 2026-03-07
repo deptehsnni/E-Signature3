@@ -1,6 +1,7 @@
 import express from "express";
-import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena folder sejajar
-import { hashPassword, SECRET_SALT } from "../../server/utils"; // REVISI: Mengarah ke folder server di luar api
+import { supabase } from "../supabase"; 
+// REVISI: Mengambil hashPassword dari folder api (asumsi utils.ts sudah dipindah ke folder api)
+import { hashPassword, SECRET_SALT } from "../utils"; 
 
 const router = express.Router();
 
