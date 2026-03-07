@@ -1,5 +1,5 @@
 import express from "express";
-import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena folder sejajar
+import { supabase } from "../supabase"; // Jalur sudah benar (naik satu tingkat ke folder api)
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
 
-// Mendapatkan semua log tanda tangan
+// Mendapatkan semua log tanda tangan dari database
 router.get("/all-signatures", async (req, res) => {
   const { data: sigs, error } = await supabase
     .from('log_signatures')
@@ -19,7 +19,7 @@ router.get("/all-signatures", async (req, res) => {
   res.json(sigs);
 });
 
-// Mendapatkan daftar user yang menunggu persetujuan (Pending)
+// Mendapatkan daftar user yang menunggu persetujuan Admin (Status: Pending)
 router.get("/pending-users", async (req, res) => {
   const { data: users, error } = await supabase
     .from('users')
@@ -30,7 +30,7 @@ router.get("/pending-users", async (req, res) => {
   res.json(users);
 });
 
-// Mendapatkan daftar permintaan reset password
+// Mendapatkan daftar permintaan reset password dari karyawan
 router.get("/reset-requests", async (req, res) => {
   const { data: users, error } = await supabase
     .from('users')
@@ -41,7 +41,7 @@ router.get("/reset-requests", async (req, res) => {
   res.json(users);
 });
 
-// Menyetujui pendaftaran user baru
+// Prosedur menyetujui pendaftaran user baru agar bisa login
 router.post("/approve-user", async (req, res) => {
   const { id_karyawan } = req.body;
   await supabase
@@ -51,7 +51,7 @@ router.post("/approve-user", async (req, res) => {
   res.json({ success: true });
 });
 
-// Menyetujui permintaan reset password
+// Prosedur menyetujui permintaan reset password karyawan
 router.post("/approve-reset", async (req, res) => {
   const { id_karyawan } = req.body;
   await supabase
@@ -61,13 +61,13 @@ router.post("/approve-reset", async (req, res) => {
   res.json({ success: true });
 });
 
-// Membuat QR Code secara masal (Bulk Generate)
+// Fitur Bulk Generate QR Code untuk dokumen K3 massal
 router.post("/bulk-generate", async (req, res) => {
   const { id_karyawan, nama_dokumen, start_num, end_num, static_part } = req.body;
   const start = parseInt(start_num);
   const end = parseInt(end_num);
   
-  // Menggunakan folder temp yang aman untuk lingkungan serverless
+  // Menggunakan folder /tmp karena Vercel hanya mengizinkan penulisan file di folder tersebut
   const tempDir = path.join('/tmp', 'qr_' + uuidv4());
   if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
@@ -84,6 +84,7 @@ router.post("/bulk-generate", async (req, res) => {
       const hashCode = uuidv4().replace(/-/g, '');
       const qrLink = `https://${req.get('host')}/verify/${hashCode}`;
 
+      // Simpan metadata ke log_signatures
       await supabase.from('log_signatures').insert([{
         signature_id: signatureId,
         id_karyawan,
@@ -94,6 +95,7 @@ router.post("/bulk-generate", async (req, res) => {
         qr_link: qrLink
       }]);
 
+      // Mengambil QR code dari API eksternal
       const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrLink)}`;
       const response = await axios.get(qrApiUrl, { responseType: 'arraybuffer' });
       archive.append(Buffer.from(response.data), { name: `QR_${docNum}.png` });
@@ -104,6 +106,7 @@ router.post("/bulk-generate", async (req, res) => {
     output.on('close', () => {
       res.download(zipPath, 'Bulk_QR.zip', () => {
         try {
+          // Cleanup folder temp setelah download selesai
           fs.rmSync(tempDir, { recursive: true, force: true });
         } catch (e) {
           console.error("Gagal menghapus folder temp:", e);
