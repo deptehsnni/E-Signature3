@@ -1,8 +1,9 @@
 import express from "express";
-import { supabase } from "../../supabase";
+import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena file sejajar di folder api
 
 const router = express.Router();
 
+// Mendapatkan data verifikasi berdasarkan kode hash unik
 router.get("/:hash", async (req, res) => {
   const { data: sig, error } = await supabase
     .from('log_signatures')
