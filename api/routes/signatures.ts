@@ -1,16 +1,18 @@
 import express from "express";
-import { supabase } from "../../supabase";
+import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena file sejajar di folder api
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import axios from "axios";
-import { hashPassword, SECRET_SALT } from "../utils";
+import { hashPassword, SECRET_SALT } from "../../server/utils"; // REVISI: Mengarah ke folder server di luar api
 
 const router = express.Router();
 
+// Membuat tanda tangan digital baru
 router.post("/create", async (req, res) => {
   const { id_karyawan, password, jenis_dokumen, nomor_dokumen } = req.body;
   const passHash = hashPassword(password);
   
+  // Verifikasi identitas user sebelum membuat tanda tangan
   const { data: user, error } = await supabase
     .from('users')
     .select('*')
@@ -25,13 +27,16 @@ router.post("/create", async (req, res) => {
   const waktu_ttd = new Date().toISOString();
   const signature_id = uuidv4();
   
+  // Membuat kode hash unik untuk integritas dokumen K3
   const rawData = `${id_karyawan}${user.nama_lengkap}${jenis_dokumen}${nomor_dokumen}${waktu_ttd}${SECRET_SALT}`;
   const hash_code = crypto.createHash('sha256').update(rawData).digest('hex');
   
+  // Menentukan URL aplikasi untuk link verifikasi QR
   const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
   const verificationUrl = `${appUrl}/?verify=${hash_code}`;
   const qr_link = `https://quickchart.io/qr?text=${encodeURIComponent(verificationUrl)}&ecLevel=M&size=300`;
 
+  // Simpan log tanda tangan ke database Supabase
   await supabase
     .from('log_signatures')
     .insert([{
@@ -48,6 +53,7 @@ router.post("/create", async (req, res) => {
   res.json({ success: true, signature_id, hash_code, qr_link });
 });
 
+// Mendapatkan riwayat tanda tangan berdasarkan ID Karyawan
 router.get("/user/:id", async (req, res) => {
   const { data: sigs, error } = await supabase
     .from('log_signatures')
@@ -59,6 +65,7 @@ router.get("/user/:id", async (req, res) => {
   res.json(sigs);
 });
 
+// Menghapus log tanda tangan (Hanya untuk Admin atau pemilik data)
 router.delete("/:id", async (req, res) => {
   const { id_karyawan } = req.body;
   const { data: sig, error: findError } = await supabase
@@ -71,6 +78,7 @@ router.delete("/:id", async (req, res) => {
     return res.status(404).json({ error: "Data tidak ditemukan" });
   }
   
+  // Pengecekan otorisasi
   if (sig.id_karyawan !== id_karyawan && id_karyawan.toLowerCase() !== 'admin') {
     return res.status(403).json({ error: "Anda tidak memiliki akses" });
   }
