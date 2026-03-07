@@ -1,7 +1,5 @@
 import "dotenv/config";
 import express from "express";
-import path from "path";
-import { fileURLToPath } from "url";
 import axios from "axios";
 import cors from "cors";
 
@@ -11,9 +9,6 @@ import adminRoutes from "./routes/admin";
 import signatureRoutes from "./routes/signatures";
 import profileRoutes from "./routes/profile";
 import verifyRoutes from "./routes/verify";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -66,17 +61,8 @@ app.get("/api/proxy-qr", async (req, res) => {
   }
 });
 
-// Serve static files in production
-if (process.env.NODE_ENV === "production") {
-  // Jalur diperbaiki untuk mencari folder dist di root proyek
-  const distPath = path.join(__dirname, "..", "dist");
-  app.use(express.static(distPath));
-  app.get("*", (req, res) => {
-    res.sendFile(path.join(distPath, "index.html"));
-  });
-}
-
 // EKSPORT UNTUK VERCEL (PENTING)
+// Kita menghapus app.use(express.static) karena akan ditangani oleh vercel.json rewrites
 export default app;
 
 // Jalankan listen hanya jika di lingkungan lokal
