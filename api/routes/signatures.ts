@@ -1,9 +1,9 @@
 import express from "express";
-import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena file sejajar di folder api
+import { supabase } from "../supabase"; // Jalur sudah benar (sejajar di folder api)
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import axios from "axios";
-import { hashPassword, SECRET_SALT } from "../../server/utils"; // REVISI: Mengarah ke folder server di luar api
+import { hashPassword, SECRET_SALT } from "../utils"; // REVISI: Mengarah ke folder api, bukan lagi folder server
 
 const router = express.Router();
 
