@@ -1,9 +1,10 @@
 import express from "express";
-import { supabase } from "../../supabase";
-import { hashPassword, SECRET_SALT } from "../utils";
+import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena folder sejajar
+import { hashPassword, SECRET_SALT } from "../../server/utils"; // REVISI: Mengarah ke folder server di luar api
 
 const router = express.Router();
 
+// Endpoint darurat untuk mereset akun Admin
 router.get("/emergency-reset-admin", async (req, res) => {
   const password = "Admin99";
   const hash = hashPassword(password);
@@ -22,11 +23,12 @@ router.get("/emergency-reset-admin", async (req, res) => {
   res.json({ success: true, message: "Admin account has been reset to ID: Admin, Password: Admin99", salt_used: SECRET_SALT });
 });
 
+// Endpoint Login
 router.post("/login", async (req, res) => {
   let { id_karyawan, password } = req.body;
   const hash = hashPassword(password);
   
-  // Normalize Admin ID
+  // Normalisasi ID Admin
   if (id_karyawan.toLowerCase() === 'admin') {
     id_karyawan = 'Admin';
   }
@@ -62,6 +64,7 @@ router.post("/login", async (req, res) => {
   res.json(user);
 });
 
+// Lupa Password - Meminta reset ke Admin
 router.post("/forgot-password", async (req, res) => {
   const { id_karyawan } = req.body;
   const { data: user, error } = await supabase
@@ -80,6 +83,7 @@ router.post("/forgot-password", async (req, res) => {
   res.json({ success: true });
 });
 
+// Mengecek apakah permintaan reset sudah disetujui
 router.get("/check-reset-status/:id", async (req, res) => {
   const { data: user, error } = await supabase
     .from('users')
@@ -91,6 +95,7 @@ router.get("/check-reset-status/:id", async (req, res) => {
   res.json({ reset_status: user.reset_status });
 });
 
+// Eksekusi reset password setelah disetujui Admin
 router.post("/reset-password", async (req, res) => {
   const { id_karyawan, new_password } = req.body;
   const { data: user, error } = await supabase
@@ -112,6 +117,7 @@ router.post("/reset-password", async (req, res) => {
   res.json({ success: true });
 });
 
+// Pendaftaran User Baru (Status awal: Pending)
 router.post("/register", async (req, res) => {
   const { id_karyawan, nama_lengkap, jabatan, password } = req.body;
   const hash = hashPassword(password);
