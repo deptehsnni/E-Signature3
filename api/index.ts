@@ -5,12 +5,12 @@ import { fileURLToPath } from "url";
 import axios from "axios";
 import cors from "cors";
 
-// Routes
-import authRoutes from "../server/routes/auth";
-import adminRoutes from "../server/routes/admin";
-import signatureRoutes from "../server/routes/signatures";
-import profileRoutes from "../server/routes/profile";
-import verifyRoutes from "../server/routes/verify";
+// Routes - Jalur diubah menjadi relatif terhadap folder /api
+import authRoutes from "./routes/auth";
+import adminRoutes from "./routes/admin";
+import signatureRoutes from "./routes/signatures";
+import profileRoutes from "./routes/profile";
+import verifyRoutes from "./routes/verify";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,7 +22,6 @@ app.use(cors());
 app.use(express.json());
 
 // --- API ROUTES ---
-// Pastikan path ini sesuai dengan yang dipanggil frontend (/api/auth/login)
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/signatures", signatureRoutes);
@@ -69,6 +68,7 @@ app.get("/api/proxy-qr", async (req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
+  // Path dist disesuaikan karena index.ts ada di dalam subfolder /api
   app.use(express.static(path.join(__dirname, "../dist")));
   app.get("*", (req, res) => {
     res.sendFile(path.join(__dirname, "../dist", "index.html"));
@@ -78,7 +78,7 @@ if (process.env.NODE_ENV === "production") {
 // EKSPORT UNTUK VERCEL (PENTING)
 export default app;
 
-// Jalankan listen hanya jika di lingkungan lokal (bukan Vercel)
+// Jalankan listen hanya jika di lingkungan lokal
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
