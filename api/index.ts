@@ -5,7 +5,7 @@ import { fileURLToPath } from "url";
 import axios from "axios";
 import cors from "cors";
 
-// Routes - Jalur diubah menjadi relatif terhadap folder /api
+// Routes - Pastikan folder 'routes' ada di dalam folder 'api'
 import authRoutes from "./routes/auth";
 import adminRoutes from "./routes/admin";
 import signatureRoutes from "./routes/signatures";
@@ -68,10 +68,11 @@ app.get("/api/proxy-qr", async (req, res) => {
 
 // Serve static files in production
 if (process.env.NODE_ENV === "production") {
-  // Path dist disesuaikan karena index.ts ada di dalam subfolder /api
-  app.use(express.static(path.join(__dirname, "../dist")));
+  // Jalur diperbaiki untuk mencari folder dist di root proyek
+  const distPath = path.join(__dirname, "..", "dist");
+  app.use(express.static(distPath));
   app.get("*", (req, res) => {
-    res.sendFile(path.join(__dirname, "../dist", "index.html"));
+    res.sendFile(path.join(distPath, "index.html"));
   });
 }
 
