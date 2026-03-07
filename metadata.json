@@ -1,0 +1,5 @@
+{
+  "name": "E-Signature QR System",
+  "description": "A secure digital signature system using SHA-256 hashing and QR codes for document verification.",
+  "requestFramePermissions": ["camera"]
+}
