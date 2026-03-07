@@ -1,5 +1,5 @@
 import express from "express";
-import { supabase } from "../../supabase";
+import { supabase } from "../supabase"; // REVISI: Jalur diperpendek karena folder sejajar
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const router = express.Router();
 
+// Mendapatkan semua log tanda tangan
 router.get("/all-signatures", async (req, res) => {
   const { data: sigs, error } = await supabase
     .from('log_signatures')
@@ -18,6 +19,7 @@ router.get("/all-signatures", async (req, res) => {
   res.json(sigs);
 });
 
+// Mendapatkan daftar user yang menunggu persetujuan (Pending)
 router.get("/pending-users", async (req, res) => {
   const { data: users, error } = await supabase
     .from('users')
@@ -28,6 +30,7 @@ router.get("/pending-users", async (req, res) => {
   res.json(users);
 });
 
+// Mendapatkan daftar permintaan reset password
 router.get("/reset-requests", async (req, res) => {
   const { data: users, error } = await supabase
     .from('users')
@@ -38,6 +41,7 @@ router.get("/reset-requests", async (req, res) => {
   res.json(users);
 });
 
+// Menyetujui pendaftaran user baru
 router.post("/approve-user", async (req, res) => {
   const { id_karyawan } = req.body;
   await supabase
@@ -47,6 +51,7 @@ router.post("/approve-user", async (req, res) => {
   res.json({ success: true });
 });
 
+// Menyetujui permintaan reset password
 router.post("/approve-reset", async (req, res) => {
   const { id_karyawan } = req.body;
   await supabase
@@ -56,13 +61,15 @@ router.post("/approve-reset", async (req, res) => {
   res.json({ success: true });
 });
 
+// Membuat QR Code secara masal (Bulk Generate)
 router.post("/bulk-generate", async (req, res) => {
   const { id_karyawan, nama_dokumen, start_num, end_num, static_part } = req.body;
   const start = parseInt(start_num);
   const end = parseInt(end_num);
   
-  const tempDir = path.join(process.cwd(), 'temp_qr_' + uuidv4());
-  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
+  // Menggunakan folder temp yang aman untuk lingkungan serverless
+  const tempDir = path.join('/tmp', 'qr_' + uuidv4());
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
 
   try {
     const zipPath = path.join(tempDir, 'qr_codes.zip');
@@ -96,13 +103,19 @@ router.post("/bulk-generate", async (req, res) => {
 
     output.on('close', () => {
       res.download(zipPath, 'Bulk_QR.zip', () => {
-        fs.rmSync(tempDir, { recursive: true, force: true });
+        try {
+          fs.rmSync(tempDir, { recursive: true, force: true });
+        } catch (e) {
+          console.error("Gagal menghapus folder temp:", e);
+        }
       });
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Gagal generate bulk QR" });
-    fs.rmSync(tempDir, { recursive: true, force: true });
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   }
 });
 
