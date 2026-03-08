@@ -61,7 +61,7 @@ export const HomePage = ({ user, signatures, setDashboardPage }: HomePageProps) 
     {/* TOMBOL ADMIN CONTROL CENTER - Hanya muncul untuk Admin */}
     {user?.id_karyawan?.toLowerCase() === 'admin' && (
       <button
-        onClick={() => setDashboardPage('admin')}
+        onClick={() => setDashboardPage('admin' as any)}
         className="group w-full bg-gradient-to-r from-indigo-600 to-purple-600 p-5 rounded-3xl shadow-lg hover:shadow-xl transition-all flex items-center justify-between text-white"
       >
         <div className="flex items-center gap-4">
