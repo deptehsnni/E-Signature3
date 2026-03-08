@@ -1,5 +1,6 @@
 import express from "express";
-import { supabase } from "../supabase"; // Jalur sudah benar (sejajar di folder api)
+// REVISI: Menambahkan ekstensi .js agar modul dapat ditemukan oleh Node.js di Vercel
+import { supabase } from "../supabase.js"; 
 
 const router = express.Router();
 
