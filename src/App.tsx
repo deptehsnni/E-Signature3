@@ -65,8 +65,10 @@ export default function App() {
     }
     return 'login';
   });
-  const [dashboardPage, setDashboardPage] = useState<'home' | 'sign' | 'database' | 'verify' | 'settings'>('home');
-  const [adminPage, setAdminPage] = useState<'home' | 'bulk' | 'users' | 'security' | 'database' | 'verify'>('home');
+
+  // ✅ DIPERBAIKI: Tambahkan 'admin' ke tipe dashboardPage
+  const [dashboardPage, setDashboardPage] = useState<'home' | 'sign' | 'database' | 'verify' | 'settings' | 'admin'>('home');
+  const [adminPage, setAdminPage] = useState<'home' | 'bulk' | 'users' | 'security' | 'database' | 'verify' | 'verification'>('bulk');
   const [dbFilter, setDbFilter] = useState<'all' | 'admin' | 'user'>('all');
   const [settingsPage, setSettingsPage] = useState<'profile' | 'privacy'>('profile');
   const [loading, setLoading] = useState(false);
@@ -198,7 +200,7 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    if (user?.id_karyawan.toLowerCase() === 'admin' && (adminPage === 'database' || dashboardPage === 'database')) {
+    if (user?.id_karyawan.toLowerCase() === 'admin' && (adminPage === 'database' || dashboardPage === 'database' || dashboardPage === 'admin')) {
       fetchAllSignatures();
     } else if (user) {
       fetchSignatures();
@@ -207,11 +209,9 @@ export default function App() {
 
   const fetchSignatures = async () => {
     if (!user) return;
-    console.log("Fetching signatures for:", user.id_karyawan);
     try {
       const res = await fetch(`/api/signatures/user/${user.id_karyawan}`);
       const data = await res.json();
-      console.log("Signatures fetched:", data.length);
       setSignatures(data);
     } catch (e) {
       console.error("Failed to fetch signatures", e);
@@ -509,29 +509,26 @@ export default function App() {
 
   const getHashFromQR = (data: string) => {
     const trimmedData = data.trim();
-    // Handle URL with query parameter ?verify=HASH
     if (trimmedData.includes('?verify=')) {
       const parts = trimmedData.split('?verify=');
       const hashPart = parts[parts.length - 1];
-      return hashPart.split('&')[0].replace(/\/$/, ''); // Remove trailing slash
+      return hashPart.split('&')[0].replace(/\/$/, '');
     }
-    // Handle URL with path /verify/HASH (legacy or alternative)
     if (trimmedData.includes('/verify/')) {
       const parts = trimmedData.split('/verify/');
       const hashPart = parts[parts.length - 1];
-      return hashPart.split('?')[0].split('#')[0].replace(/\/$/, ''); // Remove trailing slash
+      return hashPart.split('?')[0].split('#')[0].replace(/\/$/, '');
     }
     return trimmedData;
   };
 
   const processQRFile = (file: File) => {
-    // Robust file validation
     if (!file.type.startsWith('image/')) {
       showToast("File harus berupa gambar (PNG, JPG, etc.)", "error");
       return;
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB limit
+    if (file.size > 10 * 1024 * 1024) {
       showToast("Ukuran file terlalu besar (maksimal 10MB)", "error");
       return;
     }
@@ -641,13 +638,10 @@ export default function App() {
     try {
       let stream: MediaStream;
       try {
-        // Try environment (back) camera first - best for QR scanning
         stream = await navigator.mediaDevices.getUserMedia({ 
           video: { facingMode: { ideal: 'environment' } } 
         });
       } catch (e) {
-        // Fallback to any available camera (e.g., front camera on laptop)
-        console.warn("Ideal environment camera not found, trying any camera...");
         stream = await navigator.mediaDevices.getUserMedia({ video: true });
       }
 
@@ -786,7 +780,11 @@ export default function App() {
       
       if (res.ok) {
         showToast("Data berhasil dihapus", "success");
-        fetchSignatures();
+        if (user.id_karyawan.toLowerCase() === 'admin') {
+          fetchAllSignatures();
+        } else {
+          fetchSignatures();
+        }
       } else {
         const data = await res.json();
         showToast(data.error || "Gagal menghapus data", "error");
@@ -908,7 +906,7 @@ export default function App() {
       });
       if (res.ok) {
         showToast("Database berhasil dikosongkan", "success");
-        fetchSignatures();
+        fetchAllSignatures();
       } else {
         const data = await res.json();
         showToast(data.error || "Gagal mengosongkan database", "error");
@@ -919,15 +917,6 @@ export default function App() {
       setLoading(false);
       setConfirmModal({ ...confirmModal, show: false });
     }
-  };
-
-  const handleDownloadQR = (url: string, filename: string) => {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
   };
 
   const handleLogout = () => {
@@ -948,10 +937,6 @@ export default function App() {
       action
     });
   };
-
-  // --- Dashboard Pages (Render Functions) ---
-
-  // --- Main Render Logic ---
 
   if (view === 'login') {
     return (
@@ -1028,7 +1013,7 @@ export default function App() {
       <>
         <div className="min-h-screen bg-gray-50">
           <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setAdminPage('home')}>
+            <div className="flex items-center gap-3 cursor-pointer" onClick={() => setAdminPage('bulk')}>
               <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
                 <Shield size={24} />
               </div>
@@ -1077,8 +1062,11 @@ export default function App() {
                 type: 'danger',
                 action: handleClearDatabase
               })}
-              onBack={() => setView('dashboard')}
-              signatures={signatures}
+              onBack={() => {
+                setView('dashboard');
+                setDashboardPage('home');
+              }}
+              signatures={filteredSignatures}
               searchTerm={searchTerm}
               setSearchTerm={setSearchTerm}
               onDeleteSignature={(id) => confirmAction(
@@ -1102,7 +1090,6 @@ export default function App() {
             />
           </main>
         </div>
-        {/* Modal and Toast for Admin View */}
         <AnimatePresence>
           {confirmModal.show && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -1123,9 +1110,7 @@ export default function App() {
                    <FileText size={32} />}
                 </div>
                 <h3 className="text-xl font-bold text-center text-gray-900 mb-2">{confirmModal.title}</h3>
-                <p className="text-gray-500 text-center mb-8">
-                  {confirmModal.message}
-                </p>
+                <p className="text-gray-500 text-center mb-8">{confirmModal.message}</p>
                 <div className="flex gap-3">
                   <button 
                     className="flex-1 py-4 px-4 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
@@ -1163,7 +1148,6 @@ export default function App() {
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
-      {/* Universal Confirmation Modal */}
       <AnimatePresence>
         {confirmModal.show && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -1184,9 +1168,7 @@ export default function App() {
                  <FileText size={32} />}
               </div>
               <h3 className="text-xl font-bold text-center text-gray-900 mb-2">{confirmModal.title}</h3>
-              <p className="text-gray-500 text-center mb-8">
-                {confirmModal.message}
-              </p>
+              <p className="text-gray-500 text-center mb-8">{confirmModal.message}</p>
               <div className="flex gap-3">
                 <button 
                   className="flex-1 py-4 px-4 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
@@ -1285,18 +1267,13 @@ export default function App() {
             )}
             {dashboardPage === 'database' && (
               <DatabasePage 
-                signatures={signatures}
+                signatures={filteredSignatures}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 dbFilter={dbFilter}
                 setDbFilter={setDbFilter}
                 user={user}
-                onExport={() => {
-                  const ws = XLSX.utils.json_to_sheet(signatures);
-                  const wb = XLSX.utils.book_new();
-                  XLSX.utils.book_append_sheet(wb, ws, "Signatures");
-                  XLSX.writeFile(wb, "E-Signature-Database.xlsx");
-                }}
+                onExport={exportToExcel}
                 onDelete={(id) => confirmAction(
                   'Hapus Validasi?',
                   'Apakah Anda yakin ingin menghapus data tanda tangan ini?',
@@ -1352,6 +1329,58 @@ export default function App() {
                 onChangePassword={handleChangePassword}
                 loading={loading}
                 onBack={() => setDashboardPage('home')}
+              />
+            )}
+            {/* ✅ DITAMBAHKAN: Handler untuk Admin Control Center dari dashboard */}
+            {dashboardPage === 'admin' && (
+              <AdminPanel 
+                adminPage={adminPage}
+                setAdminPage={setAdminPage}
+                pendingUsers={pendingUsers}
+                resetRequests={resetRequests}
+                onApproveUser={handleApproveUser}
+                onRejectUser={handleRejectUser}
+                onApproveReset={handleApproveReset}
+                onRejectReset={handleRejectReset}
+                bulkForm={bulkForm}
+                setBulkForm={setBulkForm}
+                onBulkGenerate={handleBulkGenerate}
+                loading={loading}
+                onEmergencyReset={() => confirmAction(
+                  'Jalankan Emergency Reset?',
+                  'Apakah Anda yakin ingin mereset password admin ke default?',
+                  'danger',
+                  handleEmergencyReset
+                )}
+                onClearDatabase={() => setConfirmModal({
+                  show: true,
+                  title: 'Hapus Seluruh Database?',
+                  message: 'Apakah Anda yakin ingin menghapus seluruh database signature? Tindakan ini tidak dapat dibatalkan.',
+                  type: 'danger',
+                  action: handleClearDatabase
+                })}
+                onBack={() => setDashboardPage('home')}
+                signatures={filteredSignatures}
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                onDeleteSignature={(id) => confirmAction(
+                  'Hapus Validasi?',
+                  'Apakah Anda yakin ingin menghapus data tanda tangan ini?',
+                  'danger',
+                  () => handleDeleteSignature(id)
+                )}
+                onCopyHash={(hash) => confirmAction(
+                  'Salin Hash?',
+                  'Salin kode hash dokumen ini ke clipboard?',
+                  'info',
+                  () => copyToClipboard(hash)
+                )}
+                onDownloadQR={(url, filename) => confirmAction(
+                  'Download QR Code?',
+                  'Unduh gambar QR Code untuk dokumen ini?',
+                  'success',
+                  () => downloadQR(url, filename)
+                )}
               />
             )}
           </motion.div>
