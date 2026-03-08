@@ -1,6 +1,7 @@
 import express from "express";
-import { supabase } from "../supabase"; // Jalur sudah benar (sejajar di folder api)
-import { hashPassword } from "../utils";  // REVISI: Mengarah ke folder api, bukan lagi folder server
+// REVISI: Menambahkan ekstensi .js untuk kompatibilitas ES Modules di Vercel
+import { supabase } from "../supabase.js"; 
+import { hashPassword } from "../utils.js"; 
 
 const router = express.Router();
 
