@@ -6,7 +6,7 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   plugins: [
     react(),
-    tailwindcss(),
+    tailwindcss(), // Mendukung sintaks Tailwind v4 di index.css
   ],
   build: {
     // 1. Meningkatkan batas peringatan ukuran chunk agar log build lebih bersih
@@ -25,12 +25,13 @@ export default defineConfig({
       },
     },
   },
-  // 3. Memastikan server pengembangan (local dev) sinkron dengan backend api/
+  // 3. Konfigurasi Proxy untuk pengembangan lokal agar sinkron dengan backend API
   server: {
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
