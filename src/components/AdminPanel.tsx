@@ -26,6 +26,13 @@ import { PendingUsersList, ResetRequestsList } from './AdminLists';
 import { Signature, UserData } from '../types';
 import { cn, formatDate } from '../lib/utils';
 
+// ✅ Helper fungsi untuk format nama file QR
+const getQRFileName = (jenis_dokumen: string, nomor_dokumen: string) => {
+  const jenis = jenis_dokumen.replace(/[\/\\:*?"<>|]/g, '_').trim();
+  const nomor = nomor_dokumen.replace(/[\/\\:*?"<>|]/g, '_').trim();
+  return `E-Sign_${jenis}_${nomor}`;
+};
+
 interface AdminPanelProps {
   adminPage: string;
   setAdminPage: (page: any) => void;
@@ -216,8 +223,9 @@ export const AdminPanel = ({
             <Card key={sig.signature_id} className="p-5 flex flex-col md:flex-row gap-6 items-start md:items-center group relative">
               <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex-shrink-0 relative group/qr overflow-hidden">
                 <img src={sig.qr_link} alt="QR Code" className="w-24 h-24" referrerPolicy="no-referrer" />
+                {/* ✅ DIPERBAIKI: Format nama file QR */}
                 <button 
-                  onClick={() => onDownloadQR(sig.qr_link, `QR_${sig.nomor_dokumen.replace(/\//g, '_')}`)}
+                  onClick={() => onDownloadQR(sig.qr_link, getQRFileName(sig.jenis_dokumen, sig.nomor_dokumen))}
                   className="absolute inset-0 bg-black/40 opacity-0 group-hover/qr:opacity-100 transition-opacity flex items-center justify-center rounded-xl text-white cursor-pointer z-10"
                 >
                   <Download size={20} />
@@ -233,7 +241,8 @@ export const AdminPanel = ({
                 <div className="pt-2 flex flex-wrap gap-4">
                   <a href={`/?verify=${sig.hash_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-indigo-600 hover:underline">Detail</a>
                   <button onClick={() => onCopyHash(sig.hash_code)} className="text-xs font-bold text-gray-500 hover:text-gray-700">Salin Hash</button>
-                  <button onClick={() => onDownloadQR(sig.qr_link, `QR_${sig.nomor_dokumen.replace(/\//g, '_')}`)} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">Download QR</button>
+                  {/* ✅ DIPERBAIKI: Format nama file QR */}
+                  <button onClick={() => onDownloadQR(sig.qr_link, getQRFileName(sig.jenis_dokumen, sig.nomor_dokumen))} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">Download QR</button>
                   <button onClick={() => onDeleteSignature(sig.signature_id)} className="text-xs font-bold text-red-50 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-all">Hapus Validasi</button>
                 </div>
               </div>
