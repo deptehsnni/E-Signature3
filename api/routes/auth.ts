@@ -1,6 +1,7 @@
 import express from "express";
 // REVISI: Menambahkan ekstensi .js untuk kompatibilitas ES Modules di Vercel
 import { supabase } from "../supabase.js"; 
+// REVISI: Pastikan jalur naik satu tingkat (../) untuk menemukan utils.js di folder api
 import { hashPassword, SECRET_SALT } from "../utils.js"; 
 
 const router = express.Router();
