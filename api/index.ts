@@ -3,12 +3,12 @@ import express from "express";
 import axios from "axios";
 import cors from "cors";
 
-// Routes - Pastikan folder 'routes' ada di dalam folder 'api'
-import authRoutes from "./routes/auth";
-import adminRoutes from "./routes/admin";
-import signatureRoutes from "./routes/signatures";
-import profileRoutes from "./routes/profile";
-import verifyRoutes from "./routes/verify";
+// REVISI: Menambahkan ekstensi .js pada setiap import rute (Wajib untuk ES Modules di Vercel)
+import authRoutes from "./routes/auth.js";
+import adminRoutes from "./routes/admin.js";
+import signatureRoutes from "./routes/signatures.js";
+import profileRoutes from "./routes/profile.js";
+import verifyRoutes from "./routes/verify.js";
 
 const app = express();
 
@@ -62,7 +62,6 @@ app.get("/api/proxy-qr", async (req, res) => {
 });
 
 // EKSPORT UNTUK VERCEL (PENTING)
-// Kita menghapus app.use(express.static) karena akan ditangani oleh vercel.json rewrites
 export default app;
 
 // Jalankan listen hanya jika di lingkungan lokal
