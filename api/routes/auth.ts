@@ -1,7 +1,7 @@
 import express from "express";
-import { supabase } from "../supabase"; 
-// REVISI: Mengambil hashPassword dari folder api (asumsi utils.ts sudah dipindah ke folder api)
-import { hashPassword, SECRET_SALT } from "../utils"; 
+// REVISI: Menambahkan ekstensi .js untuk kompatibilitas ES Modules di Vercel
+import { supabase } from "../supabase.js"; 
+import { hashPassword, SECRET_SALT } from "../utils.js"; 
 
 const router = express.Router();
 
