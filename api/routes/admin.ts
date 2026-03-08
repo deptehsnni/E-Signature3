@@ -1,5 +1,6 @@
 import express from "express";
-import { supabase } from "../supabase"; // Jalur sudah benar (naik satu tingkat ke folder api)
+// REVISI: Menambahkan ekstensi .js untuk kompatibilitas ES Modules di Vercel
+import { supabase } from "../supabase.js"; 
 import path from "path";
 import fs from "fs";
 import archiver from "archiver";
