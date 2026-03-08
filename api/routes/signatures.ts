@@ -1,9 +1,11 @@
 import express from "express";
-import { supabase } from "../supabase"; // Jalur sudah benar (sejajar di folder api)
+// REVISI: Menambahkan ekstensi .js untuk kompatibilitas ES Modules di Vercel
+import { supabase } from "../supabase.js"; 
 import { v4 as uuidv4 } from "uuid";
 import crypto from "crypto";
 import axios from "axios";
-import { hashPassword, SECRET_SALT } from "../utils"; // REVISI: Mengarah ke folder api, bukan lagi folder server
+// REVISI: Menambahkan ekstensi .js untuk kompatibilitas ES Modules di Vercel
+import { hashPassword, SECRET_SALT } from "../utils.js"; 
 
 const router = express.Router();
 
