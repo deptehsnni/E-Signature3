@@ -1018,7 +1018,7 @@ export default function App() {
               </div>
               <div className="hidden sm:block">
                 <h1 className="font-bold text-lg text-gray-900 leading-tight">E-Signature</h1>
-                <p className="text-xs text-gray-500">PT. NNI System</p>
+                <p className="text-xs text-gray-500">Secure Digital Signature</p>
               </div>
             </div>
             
@@ -1202,7 +1202,7 @@ export default function App() {
           </div>
           <div className="hidden sm:block">
             <h1 className="font-bold text-lg text-gray-900 leading-tight">E-Signature</h1>
-            <p className="text-xs text-gray-500">PT. NNI System</p>
+            <p className="text-xs text-gray-500">Secure Digital Signature</p>
           </div>
         </div>
         
