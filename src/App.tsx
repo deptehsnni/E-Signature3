@@ -66,7 +66,6 @@ export default function App() {
     return 'login';
   });
 
-  // ✅ DIPERBAIKI: Tambahkan 'admin' ke tipe dashboardPage
   const [dashboardPage, setDashboardPage] = useState<'home' | 'sign' | 'database' | 'verify' | 'settings' | 'admin'>('home');
   const [adminPage, setAdminPage] = useState<'home' | 'bulk' | 'users' | 'security' | 'database' | 'verify' | 'verification'>('bulk');
   const [dbFilter, setDbFilter] = useState<'all' | 'admin' | 'user'>('all');
@@ -77,7 +76,6 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [verificationResult, setVerificationResult] = useState<{ valid: boolean; data?: Signature } | null>(null);
   
-  // Forms
   const [loginForm, setLoginForm] = useState({ id: '', password: '' });
   const [regForm, setRegForm] = useState({ id: '', name: '', role: '', password: '' });
   const [sigForm, setSigForm] = useState({ type: '', number: '', password: '' });
@@ -1013,12 +1011,13 @@ export default function App() {
       <>
         <div className="min-h-screen bg-gray-50">
           <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+            {/* ✅ DIUBAH: "Admin Panel" → "E-Signature" */}
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setAdminPage('bulk')}>
               <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
                 <Shield size={24} />
               </div>
               <div className="hidden sm:block">
-                <h1 className="font-bold text-lg text-gray-900 leading-tight">Admin Panel</h1>
+                <h1 className="font-bold text-lg text-gray-900 leading-tight">E-Signature</h1>
                 <p className="text-xs text-gray-500">PT. NNI System</p>
               </div>
             </div>
@@ -1195,6 +1194,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* ✅ Navbar dashboard - nama sudah "E-Signature" (tidak perlu diubah) */}
       <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setDashboardPage('home')}>
           <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
@@ -1331,7 +1331,6 @@ export default function App() {
                 onBack={() => setDashboardPage('home')}
               />
             )}
-            {/* ✅ DITAMBAHKAN: Handler untuk Admin Control Center dari dashboard */}
             {dashboardPage === 'admin' && (
               <AdminPanel 
                 adminPage={adminPage}
