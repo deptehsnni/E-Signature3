@@ -42,6 +42,7 @@ import { LoginView, RegisterView, ForgotPasswordView } from './components/AuthVi
 import { VerifyView } from './components/VerifyView';
 import { HomePage, SignPage, DatabasePage, SettingsPage } from './components/DashboardComponents';
 import { AdminPanel } from './components/AdminPanel';
+import { SealVerifyView } from './components/SealVerifyView'; // ✅ BARU
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { PendingUsersList, ResetRequestsList } from './components/AdminLists';
 import { api } from './services/api';
@@ -55,6 +56,15 @@ export default function App() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // ✅ BARU: State untuk routing Seal (publik)
+  const [sealBatchId, setSealBatchId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('seal');
+    }
+    return null;
+  });
+
   const [user, setUser] = useState<UserData | null>(null);
   const [view, setView] = useState<'login' | 'register' | 'dashboard' | 'admin' | 'verify' | 'forgot-password'>(() => {
     if (typeof window !== 'undefined') {
@@ -67,7 +77,7 @@ export default function App() {
   });
 
   const [dashboardPage, setDashboardPage] = useState<'home' | 'sign' | 'database' | 'verify' | 'settings' | 'admin'>('home');
-  const [adminPage, setAdminPage] = useState<'home' | 'bulk' | 'users' | 'security' | 'database' | 'verify' | 'verification'>('bulk');
+  const [adminPage, setAdminPage] = useState<'home' | 'bulk' | 'users' | 'security' | 'database' | 'verify' | 'verification' | 'seal'>('bulk');
   const [dbFilter, setDbFilter] = useState<'all' | 'admin' | 'user'>('all');
   const [settingsPage, setSettingsPage] = useState<'profile' | 'privacy'>('profile');
   const [loading, setLoading] = useState(false);
@@ -936,6 +946,20 @@ export default function App() {
     });
   };
 
+  // ✅ BARU: Routing halaman verifikasi Seal (publik, tidak perlu login)
+  if (sealBatchId) {
+    return (
+      <SealVerifyView
+        id_batch={sealBatchId}
+        onSwitchLogin={() => {
+          setSealBatchId(null);
+          setView('login');
+          window.history.pushState({}, '', '/');
+        }}
+      />
+    );
+  }
+
   if (view === 'login') {
     return (
       <LoginView 
@@ -1006,12 +1030,114 @@ export default function App() {
     );
   }
 
+  // ✅ Helper props AdminPanel agar tidak duplikasi
+  const adminPanelCommonProps = {
+    adminPage,
+    setAdminPage,
+    pendingUsers,
+    resetRequests,
+    onApproveUser: handleApproveUser,
+    onRejectUser: handleRejectUser,
+    onApproveReset: handleApproveReset,
+    onRejectReset: handleRejectReset,
+    bulkForm,
+    setBulkForm,
+    onBulkGenerate: handleBulkGenerate,
+    loading,
+    onEmergencyReset: () => confirmAction(
+      'Jalankan Emergency Reset?',
+      'Apakah Anda yakin ingin mereset password admin ke default?',
+      'danger',
+      handleEmergencyReset
+    ),
+    onClearDatabase: () => setConfirmModal({
+      show: true,
+      title: 'Hapus Seluruh Database?',
+      message: 'Apakah Anda yakin ingin menghapus seluruh database signature? Tindakan ini tidak dapat dibatalkan.',
+      type: 'danger',
+      action: handleClearDatabase
+    }),
+    signatures: filteredSignatures,
+    searchTerm,
+    setSearchTerm,
+    onDeleteSignature: (id: string) => confirmAction(
+      'Hapus Validasi?',
+      'Apakah Anda yakin ingin menghapus data tanda tangan ini?',
+      'danger',
+      () => handleDeleteSignature(id)
+    ),
+    onCopyHash: (hash: string) => confirmAction(
+      'Salin Hash?',
+      'Salin kode hash dokumen ini ke clipboard?',
+      'info',
+      () => copyToClipboard(hash)
+    ),
+    onDownloadQR: (url: string, filename: string) => confirmAction(
+      'Download QR Code?',
+      'Unduh gambar QR Code untuk dokumen ini?',
+      'success',
+      () => downloadQR(url, filename)
+    ),
+    // ✅ BARU
+    idKaryawan: user?.id_karyawan || '',
+    showToast,
+  };
+
+  // ✅ Reusable Confirm Modal JSX
+  const ConfirmModalJSX = (
+    <AnimatePresence>
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
+          >
+            <div className={cn(
+              "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 mx-auto",
+              confirmModal.type === 'danger' ? "bg-red-50 text-red-600" : 
+              confirmModal.type === 'success' ? "bg-emerald-50 text-emerald-600" : 
+              "bg-indigo-50 text-indigo-600"
+            )}>
+              {confirmModal.type === 'danger' ? <XCircle size={32} /> : 
+               confirmModal.type === 'success' ? <Download size={32} /> : 
+               <FileText size={32} />}
+            </div>
+            <h3 className="text-xl font-bold text-center text-gray-900 mb-2">{confirmModal.title}</h3>
+            <p className="text-gray-500 text-center mb-8">{confirmModal.message}</p>
+            <div className="flex gap-3">
+              <button 
+                className="flex-1 py-4 px-4 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
+                onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+                disabled={loading}
+              >
+                Batal
+              </button>
+              <button 
+                className={cn(
+                  "flex-1 py-4 px-4 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95",
+                  confirmModal.type === 'danger' ? "bg-red-600 hover:bg-red-700 shadow-red-100" : 
+                  confirmModal.type === 'success' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" : 
+                  "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
+                )}
+                onClick={confirmModal.action}
+                disabled={loading}
+              >
+                {loading ? 'Memproses...' : 'Ya, Lanjutkan'}
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   if (view === 'admin') {
     return (
       <>
         <div className="min-h-screen bg-gray-50">
           <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
-            {/* ✅ DIUBAH: "Admin Panel" → "E-Signature" */}
             <div className="flex items-center gap-3 cursor-pointer" onClick={() => setAdminPage('bulk')}>
               <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
                 <Shield size={24} />
@@ -1021,7 +1147,6 @@ export default function App() {
                 <p className="text-xs text-gray-500">Secure Digital Signature</p>
               </div>
             </div>
-            
             <div className="flex items-center gap-4">
               <Button variant="ghost" onClick={() => confirmAction(
                 'Keluar dari Akun?',
@@ -1033,108 +1158,17 @@ export default function App() {
               </Button>
             </div>
           </nav>
-
           <main className="max-w-6xl mx-auto p-6">
             <AdminPanel 
-              adminPage={adminPage}
-              setAdminPage={setAdminPage}
-              pendingUsers={pendingUsers}
-              resetRequests={resetRequests}
-              onApproveUser={handleApproveUser}
-              onRejectUser={handleRejectUser}
-              onApproveReset={handleApproveReset}
-              onRejectReset={handleRejectReset}
-              bulkForm={bulkForm}
-              setBulkForm={setBulkForm}
-              onBulkGenerate={handleBulkGenerate}
-              loading={loading}
-              onEmergencyReset={() => confirmAction(
-                'Jalankan Emergency Reset?',
-                'Apakah Anda yakin ingin mereset password admin ke default?',
-                'danger',
-                handleEmergencyReset
-              )}
-              onClearDatabase={() => setConfirmModal({
-                show: true,
-                title: 'Hapus Seluruh Database?',
-                message: 'Apakah Anda yakin ingin menghapus seluruh database signature? Tindakan ini tidak dapat dibatalkan.',
-                type: 'danger',
-                action: handleClearDatabase
-              })}
+              {...adminPanelCommonProps}
               onBack={() => {
                 setView('dashboard');
                 setDashboardPage('home');
               }}
-              signatures={filteredSignatures}
-              searchTerm={searchTerm}
-              setSearchTerm={setSearchTerm}
-              onDeleteSignature={(id) => confirmAction(
-                'Hapus Validasi?',
-                'Apakah Anda yakin ingin menghapus data tanda tangan ini?',
-                'danger',
-                () => handleDeleteSignature(id)
-              )}
-              onCopyHash={(hash) => confirmAction(
-                'Salin Hash?',
-                'Salin kode hash dokumen ini ke clipboard?',
-                'info',
-                () => copyToClipboard(hash)
-              )}
-              onDownloadQR={(url, filename) => confirmAction(
-                'Download QR Code?',
-                'Unduh gambar QR Code untuk dokumen ini?',
-                'success',
-                () => downloadQR(url, filename)
-              )}
             />
           </main>
         </div>
-        <AnimatePresence>
-          {confirmModal.show && (
-            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
-              >
-                <div className={cn(
-                  "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 mx-auto",
-                  confirmModal.type === 'danger' ? "bg-red-50 text-red-600" : 
-                  confirmModal.type === 'success' ? "bg-emerald-50 text-emerald-600" : 
-                  "bg-indigo-50 text-indigo-600"
-                )}>
-                  {confirmModal.type === 'danger' ? <XCircle size={32} /> : 
-                   confirmModal.type === 'success' ? <Download size={32} /> : 
-                   <FileText size={32} />}
-                </div>
-                <h3 className="text-xl font-bold text-center text-gray-900 mb-2">{confirmModal.title}</h3>
-                <p className="text-gray-500 text-center mb-8">{confirmModal.message}</p>
-                <div className="flex gap-3">
-                  <button 
-                    className="flex-1 py-4 px-4 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
-                    onClick={() => setConfirmModal({ ...confirmModal, show: false })}
-                    disabled={loading}
-                  >
-                    Batal
-                  </button>
-                  <button 
-                    className={cn(
-                      "flex-1 py-4 px-4 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95",
-                      confirmModal.type === 'danger' ? "bg-red-600 hover:bg-red-700 shadow-red-100" : 
-                      confirmModal.type === 'success' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" : 
-                      "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
-                    )}
-                    onClick={confirmModal.action}
-                    disabled={loading}
-                  >
-                    {loading ? 'Memproses...' : 'Ya, Lanjutkan'}
-                  </button>
-                </div>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+        {ConfirmModalJSX}
         <AnimatePresence>
           {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         </AnimatePresence>
@@ -1147,54 +1181,9 @@ export default function App() {
       <AnimatePresence>
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       </AnimatePresence>
-      <AnimatePresence>
-        {confirmModal.show && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl border border-gray-100"
-            >
-              <div className={cn(
-                "w-16 h-16 rounded-2xl flex items-center justify-center mb-6 mx-auto",
-                confirmModal.type === 'danger' ? "bg-red-50 text-red-600" : 
-                confirmModal.type === 'success' ? "bg-emerald-50 text-emerald-600" : 
-                "bg-indigo-50 text-indigo-600"
-              )}>
-                {confirmModal.type === 'danger' ? <XCircle size={32} /> : 
-                 confirmModal.type === 'success' ? <Download size={32} /> : 
-                 <FileText size={32} />}
-              </div>
-              <h3 className="text-xl font-bold text-center text-gray-900 mb-2">{confirmModal.title}</h3>
-              <p className="text-gray-500 text-center mb-8">{confirmModal.message}</p>
-              <div className="flex gap-3">
-                <button 
-                  className="flex-1 py-4 px-4 rounded-xl font-bold text-gray-500 hover:bg-gray-50 transition-colors"
-                  onClick={() => setConfirmModal({ ...confirmModal, show: false })}
-                  disabled={loading}
-                >
-                  Batal
-                </button>
-                <button 
-                  className={cn(
-                    "flex-1 py-4 px-4 rounded-xl font-bold text-white shadow-lg transition-all active:scale-95",
-                    confirmModal.type === 'danger' ? "bg-red-600 hover:bg-red-700 shadow-red-100" : 
-                    confirmModal.type === 'success' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100" : 
-                    "bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100"
-                  )}
-                  onClick={confirmModal.action}
-                  disabled={loading}
-                >
-                  {loading ? 'Memproses...' : 'Ya, Lanjutkan'}
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
-      {/* ✅ Navbar dashboard - nama sudah "E-Signature" (tidak perlu diubah) */}
+      {ConfirmModalJSX}
+
       <nav className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-3 cursor-pointer" onClick={() => setDashboardPage('home')}>
           <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
@@ -1205,14 +1194,13 @@ export default function App() {
             <p className="text-xs text-gray-500">Secure Digital Signature</p>
           </div>
         </div>
-        
         <div className="flex items-center gap-4">
           <div className="hidden md:flex items-center gap-6 mr-6">
             {[
-              { id: 'home', label: 'Beranda' },
-              { id: 'sign', label: 'Tanda Tangan' },
+              { id: 'home',     label: 'Beranda' },
+              { id: 'sign',     label: 'Tanda Tangan' },
               { id: 'database', label: 'Database' },
-              { id: 'verify', label: 'Validasi' },
+              { id: 'verify',   label: 'Validasi' },
               { id: 'settings', label: 'Pengaturan' },
             ].map(item => (
               <button
@@ -1333,53 +1321,8 @@ export default function App() {
             )}
             {dashboardPage === 'admin' && (
               <AdminPanel 
-                adminPage={adminPage}
-                setAdminPage={setAdminPage}
-                pendingUsers={pendingUsers}
-                resetRequests={resetRequests}
-                onApproveUser={handleApproveUser}
-                onRejectUser={handleRejectUser}
-                onApproveReset={handleApproveReset}
-                onRejectReset={handleRejectReset}
-                bulkForm={bulkForm}
-                setBulkForm={setBulkForm}
-                onBulkGenerate={handleBulkGenerate}
-                loading={loading}
-                onEmergencyReset={() => confirmAction(
-                  'Jalankan Emergency Reset?',
-                  'Apakah Anda yakin ingin mereset password admin ke default?',
-                  'danger',
-                  handleEmergencyReset
-                )}
-                onClearDatabase={() => setConfirmModal({
-                  show: true,
-                  title: 'Hapus Seluruh Database?',
-                  message: 'Apakah Anda yakin ingin menghapus seluruh database signature? Tindakan ini tidak dapat dibatalkan.',
-                  type: 'danger',
-                  action: handleClearDatabase
-                })}
+                {...adminPanelCommonProps}
                 onBack={() => setDashboardPage('home')}
-                signatures={filteredSignatures}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                onDeleteSignature={(id) => confirmAction(
-                  'Hapus Validasi?',
-                  'Apakah Anda yakin ingin menghapus data tanda tangan ini?',
-                  'danger',
-                  () => handleDeleteSignature(id)
-                )}
-                onCopyHash={(hash) => confirmAction(
-                  'Salin Hash?',
-                  'Salin kode hash dokumen ini ke clipboard?',
-                  'info',
-                  () => copyToClipboard(hash)
-                )}
-                onDownloadQR={(url, filename) => confirmAction(
-                  'Download QR Code?',
-                  'Unduh gambar QR Code untuk dokumen ini?',
-                  'success',
-                  () => downloadQR(url, filename)
-                )}
               />
             )}
           </motion.div>
