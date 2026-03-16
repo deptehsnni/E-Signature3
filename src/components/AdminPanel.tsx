@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Users, 
   ShieldAlert, 
@@ -16,13 +16,15 @@ import {
   Lock, 
   RefreshCw, 
   Key, 
-  UserPlus
+  UserPlus,
+  Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card } from './Card';
 import { Button } from './Button';
 import { Input } from './Input';
 import { PendingUsersList, ResetRequestsList } from './AdminLists';
+import { SealManagement } from './SealManagement'; // ✅ BARU
 import { Signature, UserData } from '../types';
 import { cn, formatDate } from '../lib/utils';
 
@@ -55,6 +57,9 @@ interface AdminPanelProps {
   onDeleteSignature: (id: string) => void;
   onCopyHash: (hash: string) => void;
   onDownloadQR: (url: string, filename: string) => void;
+  // ✅ BARU
+  idKaryawan: string;
+  showToast: (msg: string, type: 'success' | 'error' | 'info') => void;
 }
 
 export const AdminPanel = ({
@@ -78,8 +83,11 @@ export const AdminPanel = ({
   setSearchTerm,
   onDeleteSignature,
   onCopyHash,
-  onDownloadQR
+  onDownloadQR,
+  idKaryawan,   // ✅ BARU
+  showToast     // ✅ BARU
 }: AdminPanelProps) => {
+
   const renderBulkGenerate = () => (
     <div className="max-w-2xl mx-auto space-y-6">
       <Card className="p-8">
@@ -223,7 +231,6 @@ export const AdminPanel = ({
             <Card key={sig.signature_id} className="p-5 flex flex-col md:flex-row gap-6 items-start md:items-center group relative">
               <div className="bg-white p-2 rounded-xl border border-gray-100 shadow-sm flex-shrink-0 relative group/qr overflow-hidden">
                 <img src={sig.qr_link} alt="QR Code" className="w-24 h-24" referrerPolicy="no-referrer" />
-                {/* ✅ DIPERBAIKI: Format nama file QR */}
                 <button 
                   onClick={() => onDownloadQR(sig.qr_link, getQRFileName(sig.jenis_dokumen, sig.nomor_dokumen))}
                   className="absolute inset-0 bg-black/40 opacity-0 group-hover/qr:opacity-100 transition-opacity flex items-center justify-center rounded-xl text-white cursor-pointer z-10"
@@ -241,7 +248,6 @@ export const AdminPanel = ({
                 <div className="pt-2 flex flex-wrap gap-4">
                   <a href={`/?verify=${sig.hash_code}`} target="_blank" rel="noopener noreferrer" className="text-xs font-bold text-indigo-600 hover:underline">Detail</a>
                   <button onClick={() => onCopyHash(sig.hash_code)} className="text-xs font-bold text-gray-500 hover:text-gray-700">Salin Hash</button>
-                  {/* ✅ DIPERBAIKI: Format nama file QR */}
                   <button onClick={() => onDownloadQR(sig.qr_link, getQRFileName(sig.jenis_dokumen, sig.nomor_dokumen))} className="text-xs font-bold text-emerald-600 hover:text-emerald-700">Download QR</button>
                   <button onClick={() => onDeleteSignature(sig.signature_id)} className="text-xs font-bold text-red-50 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-all">Hapus Validasi</button>
                 </div>
@@ -258,6 +264,16 @@ export const AdminPanel = ({
     </div>
   );
 
+  // ✅ BARU: Render Seal Management
+  const renderSeal = () => (
+    <SealManagement
+      idKaryawan={idKaryawan}
+      onBack={() => setAdminPage('bulk')}
+      showToast={showToast}
+      onDownloadQR={onDownloadQR}
+    />
+  );
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -270,19 +286,23 @@ export const AdminPanel = ({
         </div>
       </div>
 
+      {/* ✅ Tab Bar - ditambahkan tab Seal */}
       <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
         {[
-          { id: 'bulk', label: 'Bulk Generate', icon: <QrCode size={18} /> },
-          { id: 'verification', label: 'User Approval', icon: <UserPlus size={18} /> },
-          { id: 'security', label: 'Security', icon: <ShieldAlert size={18} /> },
-          { id: 'database', label: 'Database', icon: <Database size={18} /> },
+          { id: 'bulk',         label: 'Bulk Generate', icon: <QrCode size={18} /> },
+          { id: 'verification', label: 'User Approval',  icon: <UserPlus size={18} /> },
+          { id: 'seal',         label: 'Seal',           icon: <Shield size={18} /> }, // ✅ BARU
+          { id: 'security',     label: 'Security',       icon: <ShieldAlert size={18} /> },
+          { id: 'database',     label: 'Database',       icon: <Database size={18} /> },
         ].map(item => (
           <button
             key={item.id}
             onClick={() => setAdminPage(item.id)}
             className={cn(
               "flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap",
-              adminPage === item.id ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100" : "text-gray-500 hover:bg-gray-50"
+              adminPage === item.id
+                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100"
+                : "text-gray-500 hover:bg-gray-50"
             )}
           >
             {item.icon} {item.label}
@@ -298,10 +318,11 @@ export const AdminPanel = ({
           exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
         >
-          {adminPage === 'bulk' && renderBulkGenerate()}
+          {adminPage === 'bulk'         && renderBulkGenerate()}
           {adminPage === 'verification' && renderVerification()}
-          {adminPage === 'security' && renderSecurity()}
-          {adminPage === 'database' && renderDatabase()}
+          {adminPage === 'seal'         && renderSeal()} // ✅ BARU
+          {adminPage === 'security'     && renderSecurity()}
+          {adminPage === 'database'     && renderDatabase()}
         </motion.div>
       </AnimatePresence>
     </div>
