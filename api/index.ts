@@ -2,13 +2,12 @@ import "dotenv/config";
 import express from "express";
 import axios from "axios";
 import cors from "cors";
-
-// REVISI: Menambahkan ekstensi .js pada setiap import rute (Wajib untuk ES Modules di Vercel)
 import authRoutes from "./routes/auth.js";
 import adminRoutes from "./routes/admin.js";
 import signatureRoutes from "./routes/signatures.js";
 import profileRoutes from "./routes/profile.js";
 import verifyRoutes from "./routes/verify.js";
+import sealRoutes from "./routes/seal.js"; // ✅ BARU
 
 const app = express();
 
@@ -22,6 +21,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/signatures", signatureRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/verify", verifyRoutes);
+app.use("/api/seal", sealRoutes); // ✅ BARU
 
 // Proxy for QR Download
 app.get("/api/proxy-qr", async (req, res) => {
@@ -38,7 +38,6 @@ app.get("/api/proxy-qr", async (req, res) => {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
       }
     };
-
     let response;
     try {
       const u = new URL(url);
@@ -61,7 +60,7 @@ app.get("/api/proxy-qr", async (req, res) => {
   }
 });
 
-// EKSPORT UNTUK VERCEL (PENTING)
+// EKSPORT UNTUK VERCEL
 export default app;
 
 // Jalankan listen hanya jika di lingkungan lokal
