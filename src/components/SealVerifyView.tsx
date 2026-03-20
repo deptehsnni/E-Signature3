@@ -176,7 +176,7 @@ export const SealVerifyView = ({ id_batch, onSwitchLogin }: SealVerifyViewProps)
                       Nomor Dokumen
                     </label>
                     <Input
-                      placeholder="Contoh: SERT-001"
+                      placeholder="Contoh: 001/xx/Cert-EHS/xx-xx"
                       value={nomorDokumen}
                       onChange={e => setNomorDokumen(e.target.value)}
                       className="text-center font-mono text-lg py-4"
